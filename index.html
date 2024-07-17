@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extravascular Two-Compartment Model Concentration-Time Curve</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            width: 80%;
+            max-width: 600px;
+            margin-bottom: 20px;
+        }
+        .input-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            width: 100%;
+        }
+        .input-container label {
+            flex: 1;
+            margin-right: 10px;
+        }
+        .input-container input {
+            flex: 2;
+            margin-right: 10px;
+            padding: 5px;
+        }
+        .input-container span {
+            flex: 0.5;
+            text-align: right;
+        }
+        #plot {
+            width: 80%;
+            height: 500px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Extravascular Two-Compartment Model Concentration-Time Curve</h1>
+    <div class="container">
+         <div class="input-container">
+            <label for="dose">Dose (D):</label>
+            <input type="number" id="dose" step="any">
+            <span>ng</span>
+        </div>
+        <div class="input-container">
+            <label for="tlag">Lag Time (t<sub>lag</sub>):</label>
+            <input type="number" id="tlag" step="any">
+            <span>h</span>
+        </div>
+        <div class="input-container">
+            <label for="interval">Dosing Interval (τ):</label>
+            <input type="number" id="interval" step="any">
+            <span>h</span>
+        </div>
+        <div class="input-container">
+            <label for="doses">Number of Doses (n):</label>
+            <input type="number" id="doses" step="any">
+        </div>
+       <div class="input-container">
+            <label for="ka">Absorption Rate Constant (k<sub>a</sub>):</label>
+            <input type="number" id="ka" step="any">
+            <span>h<sup>-1</sup></span>
+        </div>
+        <div class="input-container">
+            <label for="cl1">Distribution Clearance (CL<sub>1</sub>):</label>
+            <input type="number" id="cl1" step="any">
+            <span>L/h</span>
+        </div>
+        <div class="input-container">
+            <label for="v1">Central Compartment Volume (V<sub>1</sub>):</label>
+            <input type="number" id="v1" step="any">
+            <span>L</span>
+        </div>
+        <div class="input-container">
+            <label for="cl2">Reabsorption Clearance (CL<sub>2</sub>):</label>
+            <input type="number" id="cl2" step="any">
+            <span>L/h</span>
+        </div>
+        <div class="input-container">
+            <label for="v2">Peripheral Volume (V<sub>2</sub>):</label>
+            <input type="number" id="v2" step="any">
+            <span>L</span>
+        </div>
+        <div class="input-container">
+            <label for="time">Time Range (t):</label>
+            <input type="number" id="time" step="any">
+            <span>h</span>
+        </div>
+        <div class="input-container" style="justify-content: center;">
+            <button onclick="plotExtravascularTwoCompartmentModel()">Plot Concentration-Time Curve</button>
+        </div>
+    </div>
+    <div id="plot"></div>
+
+    <script>
+        function plotExtravascularTwoCompartmentModel() {
+            const ka = parseFloat(document.getElementById('ka').value);
+            const cl1 = parseFloat(document.getElementById('cl1').value);
+            const v1 = parseFloat(document.getElementById('v1').value);
+            const cl2 = parseFloat(document.getElementById('cl2').value);
+            const v2 = parseFloat(document.getElementById('v2').value);
+            const dose = parseFloat(document.getElementById('dose').value);
+            const tlag = parseFloat(document.getElementById('tlag').value);
+            const interval = parseFloat(document.getElementById('interval').value);
+            const doses = parseFloat(document.getElementById('doses').value);
+            const timeRange = parseFloat(document.getElementById('time').value);
+
+            if (isNaN(ka) || isNaN(cl1) || isNaN(v1) || isNaN(cl2) || isNaN(v2) || isNaN(dose) || isNaN(tlag) || isNaN(interval) || isNaN(doses) || isNaN(timeRange)) {
+                alert('Please enter valid values for all parameters.');
+                return;
+            }
+
+            const k10 = cl1 / v1;
+            const k12 = cl2 / v1;
+            const k21 = cl2 / v2;
+
+            const alpha = (k10 + k12 + k21 + Math.sqrt((k10 + k12 + k21) ** 2 - 4 * k10 * k21)) / 2;
+            const beta = (k10 + k12 + k21  - Math.sqrt((k10 + k12 + k21) ** 2 - 4 * k21 * k10)) / 2;
+
+            const A = (dose * ka*(k21-ka)/ (v1 * (alpha-ka) * (beta-ka)));
+            const B = (dose * ka*(k21-alpha) / (v1 * (ka - alpha) * (beta - alpha)));
+            const C = (dose * ka*(k21-beta) / (v1 * (ka - beta) * (alpha - beta)));
+
+            const times = [];
+            const concentrations = [];
+
+            for (let t = 0; t <= timeRange; t += 0.1) {
+                let concentration = 0;
+                for (let i = 0; i < doses; i++) {
+                    let start_time = i * interval;
+                    if (t >= start_time + tlag) {
+                        concentration += A * (Math.exp(-ka * (t - start_time - tlag))) + B * (Math.exp(-alpha * (t - start_time - tlag))) + C * (Math.exp(-beta * (t - start_time - tlag)));
+                    }
+                }
+                times.push(t);
+                concentrations.push(concentration);
+            }
+
+            const trace = {
+                x: times,
+                y: concentrations,
+                mode: 'lines',
+                type: 'scatter',
+                name: 'Concentration-Time Curve'
+            };
+
+            const data = [trace];
+
+            const layout = {
+                title: 'Extravascular Two-Compartment Model Concentration-Time Curve',
+                xaxis: { title: 'Time (h)' },
+                yaxis: { title: 'Concentration (ng/L)' }
+            };
+
+            Plotly.newPlot('plot', data, layout);
+        }
+    </script>
+</body>
+</html>
